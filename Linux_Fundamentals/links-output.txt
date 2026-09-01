@@ -1,0 +1,77 @@
+===== 1. Create the original file =====
+$ echo 'Original content, written once.' > original.txt
+
+$ cat original.txt
+Original content, written once.
+
+===== 2. Create a HARD link (ln) and a SOFT link (ln -s) =====
+$ ln original.txt hardlink.txt
+
+$ ln -s original.txt softlink.txt
+
+===== 3. Inspect: -i shows the inode number, column 2 is the link count =====
+$ ls -li
+total 8
+398279 -rw-r--r-- 2 root root 32 Sep  1 13:11 hardlink.txt
+398279 -rw-r--r-- 2 root root 32 Sep  1 13:11 original.txt
+398281 lrwxrwxrwx 1 root root 12 Sep  1 13:11 softlink.txt -> original.txt
+
+===== 4. All three read the same data right now =====
+$ cat original.txt hardlink.txt softlink.txt
+Original content, written once.
+Original content, written once.
+Original content, written once.
+
+===== 5. Writing through the hard link changes the same inode =====
+$ echo 'Appended via hardlink.' >> hardlink.txt
+
+$ cat original.txt
+Original content, written once.
+Appended via hardlink.
+
+===== 6. DELETE THE ORIGINAL - the decisive test =====
+$ rm original.txt
+
+$ ls -li
+total 4
+398279 -rw-r--r-- 1 root root 55 Sep  1 13:11 hardlink.txt
+398281 lrwxrwxrwx 1 root root 12 Sep  1 13:11 softlink.txt -> original.txt
+
+--- hard link still works (inode still has a reference) ---
+$ cat hardlink.txt
+Original content, written once.
+Appended via hardlink.
+
+--- soft link is now DANGLING (it pointed at a NAME that is gone) ---
+$ cat softlink.txt
+cat: softlink.txt: No such file or directory
+exit code = 1
+
+$ readlink softlink.txt
+original.txt
+
+$ test -e softlink.txt && echo EXISTS || echo 'BROKEN (target missing)'
+BROKEN (target missing)
+
+===== 7. Hard links cannot cross filesystems or link directories =====
+$ ln /tmp/linkdemo/hardlink.txt /dev/shm/nope.txt   (different filesystem)
+ln: failed to create hard link '/dev/shm/nope.txt' => '/tmp/linkdemo/hardlink.txt': Invalid cross-device link
+
+$ mkdir realdir
+
+$ ln realdir dirhardlink   (hard link to a directory)
+ln: realdir: hard link not allowed for directory
+
+$ ln -s realdir dirsoftlink   (soft link to a directory - allowed)
+lrwxrwxrwx 1 root root 7 Sep  1 13:11 dirsoftlink -> realdir
+
+===== 8. Deleting links =====
+$ rm softlink.txt
+
+$ unlink dirsoftlink
+
+$ ls -li
+total 8
+398279 -rw-r--r-- 1 root root   55 Sep  1 13:11 hardlink.txt
+398283 drwxr-xr-x 2 root root 4096 Sep  1 13:11 realdir
+

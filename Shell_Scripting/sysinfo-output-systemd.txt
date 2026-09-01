@@ -1,0 +1,61 @@
+==================================================
+            SYSTEM INFORMATION REPORT
+==================================================
+
+--- Current Date ---
+Tue Sep  1 13:10:05 UTC 2026
+
+--- Hostname ---
+af19e2d3d43e
+
+--- Logged in User ---
+root
+
+--- Disk Usage (df -h) ---
+Filesystem      Size  Used Avail Use% Mounted on
+overlay        1007G   24G  933G   3% /
+tmpfs            64M     0   64M   0% /dev
+shm              64M     0   64M   0% /dev/shm
+/dev/sdd       1007G   24G  933G   3% /etc/hosts
+tmpfs           1.6G  8.1M  1.6G   1% /run
+tmpfs           5.0M     0  5.0M   0% /run/lock
+
+--- Running Processes (ps aux) ---
+USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root         1  0.0  0.1  20692 11952 ?        Ss   13:04   0:00 /lib/systemd/systemd
+root        23  0.0  0.1  25632  8784 ?        S<s  13:04   0:00 /usr/lib/systemd/systemd-journald
+message+   186  0.0  0.0   9444  5184 ?        Ss   13:05   0:00 @dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only
+root       189  0.0  0.0  17520  7920 ?        Ss   13:05   0:00 /usr/lib/systemd/systemd-logind
+root       533  0.0  0.0   4324  3456 ?        Ss   13:09   0:00 bash -c apt-get install -y -qq procps >/dev/null 2>&1; cd /root && chmod +x sysinfo.sh && printf 'devops_reports\nrunning_processes.txt\n' | ./sysinfo.sh
+root       627  0.0  0.0   4324  3312 ?        S    13:10   0:00 /bin/bash ./sysinfo.sh
+root       632  0.0  0.0   7888  4032 ?        R    13:10   0:00 ps aux
+
+
+You chose directory : devops_reports
+You chose file      : running_processes.txt
+
+Created directory: devops_reports
+Created file: devops_reports/running_processes.txt
+
+Saved running-process list to devops_reports/running_processes.txt using > redirection.
+
+--- Line count of the saved report ---
+8 devops_reports/running_processes.txt
+
+--- First 10 lines of devops_reports/running_processes.txt ---
+USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root         1  0.0  0.1  20692 11952 ?        Ss   13:04   0:00 /lib/systemd/systemd
+root        23  0.0  0.1  25632  8784 ?        S<s  13:04   0:00 /usr/lib/systemd/systemd-journald
+message+   186  0.0  0.0   9444  5184 ?        Ss   13:05   0:00 @dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only
+root       189  0.0  0.0  17520  7920 ?        Ss   13:05   0:00 /usr/lib/systemd/systemd-logind
+root       533  0.0  0.0   4324  3456 ?        Ss   13:09   0:00 bash -c apt-get install -y -qq procps >/dev/null 2>&1; cd /root && chmod +x sysinfo.sh && printf 'devops_reports\nrunning_processes.txt\n' | ./sysinfo.sh
+root       627  0.0  0.0   4324  3312 ?        S    13:10   0:00 /bin/bash ./sysinfo.sh
+root       635  0.0  0.0   7888  4176 ?        R    13:10   0:00 ps aux
+
+--- Directory listing ---
+total 4
+-rw-r--r-- 1 root root 896 Sep  1 13:10 running_processes.txt
+
+==================================================
+  Report complete. Saved at: devops_reports/running_processes.txt
+==================================================

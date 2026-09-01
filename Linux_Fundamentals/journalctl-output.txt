@@ -1,0 +1,163 @@
+===== 0. Confirm we are on a systemd host (journald is part of systemd) =====
+$ systemctl is-system-running
+running
+
+$ systemctl --version | head -2
+systemd 255 (255.4-1ubuntu8.16)
++PAM +AUDIT +SELINUX +APPARMOR +IMA +SMACK +SECCOMP +GCRYPT -GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 -IDN +IPTC +KMOD +LIBCRYPTSETUP +LIBFDISK +PCRE2 -PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD -BPF_FRAMEWORK -XKBCOMMON +UTMP +SYSVINIT default-hierarchy=unified
+
+===== 1. Install a real service to generate logs =====
+$ systemctl enable --now nginx >/dev/null 2>&1; systemctl is-active nginx
+active
+
+===== 2. journalctl with NO arguments shows the whole journal (oldest first) =====
+$ journalctl --no-pager | head -5
+Sep 01 13:12:10 656f0f4b682c kernel: Linux version 6.6.87.2-microsoft-standard-WSL2 (root@439a258ad544) (gcc (GCC) 11.2.0, GNU ld (GNU Binutils) 2.37) #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025
+Sep 01 13:12:10 656f0f4b682c kernel: Command line: initrd=\initrd.img WSL_ROOT_INIT=1 panic=-1 nr_cpus=18 hv_utils.timesync_implicit=1 console=hvc0 debug pty.legacy_count=0 WSL_ENABLE_CRASH_DUMP=1
+Sep 01 13:12:10 656f0f4b682c kernel: KERNEL supported cpus:
+Sep 01 13:12:10 656f0f4b682c kernel:   Intel GenuineIntel
+Sep 01 13:12:10 656f0f4b682c kernel:   AMD AuthenticAMD
+
+===== 3. -n N : the last N entries (most useful quick check) =====
+$ journalctl --no-pager -n 10
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Reloading finished in 24 ms.
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Reloading requested from client PID 393 ('systemctl') (unit init.scope)...
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Reloading...
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Reloading finished in 26 ms.
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Reloading requested from client PID 372 ('systemctl') (unit init.scope)...
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Reloading...
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Reloading finished in 26 ms.
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Reached target network-online.target - Network is Online.
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Started nginx.service - A high performance web server and a reverse proxy server.
+
+===== 4. -u UNIT : logs for ONE specific service  <<< the key one >>> =====
+$ journalctl --no-pager -u nginx
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Started nginx.service - A high performance web server and a reverse proxy server.
+
+===== 5. Restart the service and watch its log grow =====
+$ systemctl restart nginx
+
+$ journalctl --no-pager -u nginx -n 8
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Started nginx.service - A high performance web server and a reverse proxy server.
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Stopping nginx.service - A high performance web server and a reverse proxy server...
+Sep 01 13:13:03 656f0f4b682c systemd[1]: nginx.service: Deactivated successfully.
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Stopped nginx.service - A high performance web server and a reverse proxy server.
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Started nginx.service - A high performance web server and a reverse proxy server.
+
+===== 6. systemctl status also shows the last few journal lines =====
+$ systemctl status nginx --no-pager | head -14
+* nginx.service - A high performance web server and a reverse proxy server
+     Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled; preset: enabled)
+     Active: active (running) since Tue 2026-09-01 13:13:03 UTC; 9ms ago
+       Docs: man:nginx(8)
+    Process: 455 ExecStartPre=/usr/sbin/nginx -t -q -g daemon on; master_process on; (code=exited, status=0/SUCCESS)
+    Process: 457 ExecStart=/usr/sbin/nginx -g daemon on; master_process on; (code=exited, status=0/SUCCESS)
+   Main PID: 458 (nginx)
+      Tasks: 19 (limit: 9280)
+     Memory: 14.8M (peak: 15.0M)
+        CPU: 35ms
+     CGroup: /docker/656f0f4b682c4b2e2eec50beb3d23de2fc82df207fdd0f4ddc4e55ba742dcf5a/system.slice/nginx.service
+             |-458 "nginx: master process /usr/sbin/nginx -g daemon on; master_process on;"
+             |-459 "nginx: worker process"
+             |-460 "nginx: worker process"
+
+===== 7. -b : logs from the current boot only =====
+$ journalctl --no-pager -b -n 5
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Stopping nginx.service - A high performance web server and a reverse proxy server...
+Sep 01 13:13:03 656f0f4b682c systemd[1]: nginx.service: Deactivated successfully.
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Stopped nginx.service - A high performance web server and a reverse proxy server.
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Started nginx.service - A high performance web server and a reverse proxy server.
+
+$ journalctl --list-boots --no-pager
+IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
+  0 e401deb34e53433fa8013524605c78f0 Tue 2026-09-01 13:12:10 UTC Tue 2026-09-01 13:13:03 UTC
+
+===== 8. -p : filter by priority (err and worse) =====
+$ journalctl --no-pager -p err -b || echo '(no error-level entries this boot)'
+Sep 01 13:12:10 656f0f4b682c kernel: PCI: Fatal: No config space access function found
+Sep 01 13:12:10 656f0f4b682c unknown: WSL (1 - init(docker-desktop)) ERROR: ConfigApplyWindowsLibPath:2092: open /etc/ld.so.conf.d/ld.wsl.conf failed 2
+Sep 01 13:12:10 656f0f4b682c kernel: misc dxg: dxgk: dxgkio_is_feature_enabled: Ioctl failed: -22
+Sep 01 13:12:10 656f0f4b682c kernel: misc dxg: dxgk: dxgkio_query_adapter_info: Ioctl failed: -22
+Sep 01 13:12:10 656f0f4b682c kernel: misc dxg: dxgk: dxgkio_query_adapter_info: Ioctl failed: -22
+Sep 01 13:12:10 656f0f4b682c kernel: misc dxg: dxgk: dxgkio_query_adapter_info: Ioctl failed: -22
+Sep 01 13:12:10 656f0f4b682c kernel: misc dxg: dxgk: dxgkio_query_adapter_info: Ioctl failed: -2
+Sep 01 13:12:10 656f0f4b682c kernel: misc dxg: dxgk: dxgkio_query_adapter_info: Ioctl failed: -22
+Sep 01 13:12:10 656f0f4b682c kernel: misc dxg: dxgk: dxgkio_query_adapter_info: Ioctl failed: -22
+Sep 01 13:12:10 656f0f4b682c kernel: misc dxg: dxgk: dxgkio_query_adapter_info: Ioctl failed: -22
+Sep 01 13:12:10 656f0f4b682c kernel: misc dxg: dxgk: dxgkio_query_adapter_info: Ioctl failed: -22
+Sep 01 13:12:10 656f0f4b682c kernel: misc dxg: dxgk: dxgkio_query_adapter_info: Ioctl failed: -2
+Sep 01 13:12:10 656f0f4b682c kernel: virtiofs: Unknown parameter 'negative_dentry_timeout'
+Sep 01 13:12:10 656f0f4b682c unknown: WSL (288) ERROR: CheckConnection: getaddrinfo() failed: -5
+Sep 01 13:12:10 656f0f4b682c unknown: WSL (288) ERROR: CheckConnection: getaddrinfo() failed: -5
+
+===== 9. --since / --until : time filtering =====
+$ journalctl --no-pager --since '10 minutes ago' -u nginx | tail -5
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Stopping nginx.service - A high performance web server and a reverse proxy server...
+Sep 01 13:13:03 656f0f4b682c systemd[1]: nginx.service: Deactivated successfully.
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Stopped nginx.service - A high performance web server and a reverse proxy server.
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Started nginx.service - A high performance web server and a reverse proxy server.
+
+===== 10. -k : kernel messages only (dmesg equivalent) =====
+$ journalctl --no-pager -k -n 3
+Sep 01 13:12:10 656f0f4b682c kernel: docker0: port 11(veth8234349) entered blocking state
+Sep 01 13:12:10 656f0f4b682c kernel: docker0: port 11(veth8234349) entered forwarding state
+Sep 01 13:12:10 656f0f4b682c systemd-journald[22]: Collecting audit messages is disabled.
+
+===== 11. -o : output formats =====
+$ journalctl --no-pager -u nginx -n 1 -o short-iso
+2026-09-01T13:13:03+00:00 656f0f4b682c systemd[1]: Started nginx.service - A high performance web server and a reverse proxy server.
+
+$ journalctl --no-pager -u nginx -n 1 -o json-pretty | head -20
+{
+	"__REALTIME_TIMESTAMP" : "1788268383927149",
+	"_SOURCE_REALTIME_TIMESTAMP" : "1788268383927097",
+	"_CMDLINE" : "/lib/systemd/systemd",
+	"SYSLOG_FACILITY" : "3",
+	"MESSAGE" : "Started nginx.service - A high performance web server and a reverse proxy server.",
+	"__SEQNUM" : "1269",
+	"_HOSTNAME" : "656f0f4b682c",
+	"JOB_TYPE" : "start",
+	"__SEQNUM_ID" : "b544a835da1c4f9288b86efa6d5a0f1d",
+	"INVOCATION_ID" : "80d48d0b6f344e96b855f08edb7a63cd",
+	"CODE_FUNC" : "job_emit_done_message",
+	"UNIT" : "nginx.service",
+	"TID" : "1",
+	"_COMM" : "systemd",
+	"__CURSOR" : "s=b544a835da1c4f9288b86efa6d5a0f1d;i=4f5;b=e401deb34e53433fa8013524605c78f0;m=137ee25b5;t=65a6badc97b6d;x=ea301a1ed1614aa2",
+	"JOB_ID" : "95",
+	"_SELINUX_CONTEXT" : "kernel",
+	"_BOOT_ID" : "e401deb34e53433fa8013524605c78f0",
+	"_RUNTIME_SCOPE" : "system",
+
+===== 12. Journal housekeeping =====
+$ journalctl --disk-usage
+Archived and active journals take up 8.0M in the file system.
+
+$ journalctl --vacuum-time=2d      (delete entries older than 2 days)
+Vacuuming done, freed 0B of archived journals from /var/log/journal.
+Vacuuming done, freed 0B of archived journals from /run/log/journal/3c4b4d66cdba4d0fb22a34490d1f230a.
+
+===== 13. Follow mode (-f) streams live - shown here with a timeout =====
+$ journalctl -f -u nginx     # Ctrl+C to stop; runs forever, so bounded here:
+$ timeout 4 journalctl -f -u nginx &  then: systemctl reload nginx
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Started nginx.service - A high performance web server and a reverse proxy server.
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Stopping nginx.service - A high performance web server and a reverse proxy server...
+Sep 01 13:13:03 656f0f4b682c systemd[1]: nginx.service: Deactivated successfully.
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Stopped nginx.service - A high performance web server and a reverse proxy server.
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Sep 01 13:13:03 656f0f4b682c systemd[1]: Started nginx.service - A high performance web server and a reverse proxy server.
+Sep 01 13:13:05 656f0f4b682c systemd[1]: Reloading nginx.service - A high performance web server and a reverse proxy server...
+Sep 01 13:13:05 656f0f4b682c nginx[497]: 2026/09/01 13:13:05 [notice] 497#497: signal process started
+Sep 01 13:13:05 656f0f4b682c systemd[1]: Reloaded nginx.service - A high performance web server and a reverse proxy server.
+
+===== Cleanup =====
+$ systemctl stop nginx; systemctl is-active nginx || true
+inactive
+

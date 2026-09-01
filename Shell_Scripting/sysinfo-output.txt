@@ -1,0 +1,55 @@
+==================================================
+            SYSTEM INFORMATION REPORT
+==================================================
+
+--- Current Date ---
+Tue Sep  1 13:09:31 UTC 2026
+
+--- Hostname ---
+9a9f5a0da275
+
+--- Logged in User ---
+root
+
+--- Disk Usage (df -h) ---
+Filesystem      Size  Used Avail Use% Mounted on
+overlay        1007G   24G  933G   3% /
+tmpfs            64M     0   64M   0% /dev
+shm              64M     0   64M   0% /dev/shm
+C:\             475G  334G  142G  71% /work
+/dev/sdd       1007G   24G  933G   3% /etc/hosts
+tmpfs           3.8G     0  3.8G   0% /proc/acpi
+tmpfs           3.8G     0  3.8G   0% /proc/scsi
+tmpfs           3.8G     0  3.8G   0% /sys/firmware
+
+--- Running Processes (ps aux) ---
+USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root         1  0.1  0.0   4324  2736 ?        Ss   13:09   0:00 bash -c apt-get update -qq >/dev/null 2>&1; apt-get install -y -qq procps >/dev/null 2>&1; cp /work/sysinfo.sh . && chmod +x sysinfo.sh && printf 'devops_reports\nrunning_processes.txt\n' | ./sysinfo.sh
+root       207  0.0  0.0   4324  3168 ?        S    13:09   0:00 /bin/bash ./sysinfo.sh
+root       212  0.0  0.0   7888  3744 ?        R    13:09   0:00 ps aux
+
+
+You chose directory : devops_reports
+You chose file      : running_processes.txt
+
+Created directory: devops_reports
+Created file: devops_reports/running_processes.txt
+
+Saved running-process list to devops_reports/running_processes.txt using > redirection.
+
+--- Line count of the saved report ---
+4 devops_reports/running_processes.txt
+
+--- First 10 lines of devops_reports/running_processes.txt ---
+USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root         1  0.1  0.0   4324  2736 ?        Ss   13:09   0:00 bash -c apt-get update -qq >/dev/null 2>&1; apt-get install -y -qq procps >/dev/null 2>&1; cp /work/sysinfo.sh . && chmod +x sysinfo.sh && printf 'devops_reports\nrunning_processes.txt\n' | ./sysinfo.sh
+root       207  0.0  0.0   4324  3312 ?        S    13:09   0:00 /bin/bash ./sysinfo.sh
+root       215  0.0  0.0   7888  4032 ?        R    13:09   0:00 ps aux
+
+--- Directory listing ---
+total 4
+-rw-r--r-- 1 root root 501 Sep  1 13:09 running_processes.txt
+
+==================================================
+  Report complete. Saved at: devops_reports/running_processes.txt
+==================================================

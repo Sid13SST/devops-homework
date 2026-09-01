@@ -1,0 +1,111 @@
+===== 1. What are these two commands? =====
+$ which useradd adduser
+/usr/sbin/useradd
+/usr/sbin/adduser
+
+$ file -L /usr/sbin/useradd
+/usr/sbin/useradd: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=a0000899fb3c31347e08f25c681dab585afebf36, for GNU/Linux 3.2.0, stripped
+
+$ file -L /usr/sbin/adduser
+/usr/sbin/adduser: Perl script text executable
+
+--- useradd is a compiled binary from the 'passwd'/shadow-utils package.
+--- adduser is a Perl script: a friendly, policy-driven WRAPPER around useradd.
+
+$ dpkg -S /usr/sbin/useradd /usr/sbin/adduser
+passwd: /usr/sbin/useradd
+adduser: /usr/sbin/adduser
+
+===== 2. LOW LEVEL: useradd with no options =====
+$ useradd testuser1
+
+$ grep '^testuser1:' /etc/passwd
+testuser1:x:1001:1001::/home/testuser1:/bin/sh
+
+$ ls -la /home/   (note: NO home directory was created)
+total 12
+drwxr-xr-x 3 root   root   4096 Aug 10 14:55 .
+drwxr-xr-x 1 root   root   4096 Sep  1 13:11 ..
+drwxr-x--- 2 ubuntu ubuntu 4096 Aug 10 14:55 ubuntu
+
+$ test -d /home/testuser1 && echo 'home exists' || echo 'NO HOME DIRECTORY CREATED'
+NO HOME DIRECTORY CREATED
+
+$ passwd -S testuser1
+testuser1 L 2026-09-01 0 99999 7 -1
+
+--- 'L' means the account is LOCKED: useradd set no password at all.
+
+===== 3. RECOMMENDED ON UBUNTU/DEBIAN: adduser =====
+Interactive form (what you would normally type):
+    $ sudo adduser testuser2
+It then PROMPTS for password, Full Name, Room Number, Phone, etc.
+Here it is run non-interactively so the output is capturable:
+$ adduser --disabled-password --gecos '' testuser2
+info: Adding user `testuser2' ...
+info: Selecting UID/GID from range 1000 to 59999 ...
+info: Adding new group `testuser2' (1002) ...
+info: Adding new user `testuser2' (1002) with group `testuser2 (1002)' ...
+info: Creating home directory `/home/testuser2' ...
+info: Copying files from `/etc/skel' ...
+info: Adding new user `testuser2' to supplemental / extra groups `users' ...
+info: Adding user `testuser2' to group `users' ...
+
+$ grep '^testuser2:' /etc/passwd
+testuser2:x:1002:1002:,,,:/home/testuser2:/bin/bash
+
+$ ls -la /home/testuser2   (home directory created AND populated)
+total 20
+drwxr-x--- 2 testuser2 testuser2 4096 Sep  1 13:11 .
+drwxr-xr-x 1 root      root      4096 Sep  1 13:11 ..
+-rw-r--r-- 1 testuser2 testuser2  220 Sep  1 13:11 .bash_logout
+-rw-r--r-- 1 testuser2 testuser2 3771 Sep  1 13:11 .bashrc
+-rw-r--r-- 1 testuser2 testuser2  807 Sep  1 13:11 .profile
+
+$ passwd -S testuser2
+testuser2 L 2026-09-01 0 99999 7 -1
+
+$ groups testuser2
+testuser2 : testuser2 users
+
+===== 4. Side-by-side comparison =====
+$ grep -E '^testuser1:|^testuser2:' /etc/passwd
+testuser1:x:1001:1001::/home/testuser1:/bin/sh
+testuser2:x:1002:1002:,,,:/home/testuser2:/bin/bash
+
+Field order: name:passwd:UID:GID:GECOS:home_dir:login_shell
+
+  testuser1 (useradd)  -> shell /bin/sh, home listed but NOT created, no group of its own populated
+  testuser2 (adduser)  -> shell /bin/bash, home created + skel files copied, user group created
+
+===== 5. Making useradd behave like adduser (the options you must remember) =====
+$ useradd -m -s /bin/bash -c 'Test User Three' testuser3
+
+$ grep '^testuser3:' /etc/passwd
+testuser3:x:1003:1003:Test User Three:/home/testuser3:/bin/bash
+
+$ ls -la /home/testuser3
+total 20
+drwxr-x--- 2 testuser3 testuser3 4096 Sep  1 13:11 .
+drwxr-xr-x 1 root      root      4096 Sep  1 13:11 ..
+-rw-r--r-- 1 testuser3 testuser3  220 Mar 31  2024 .bash_logout
+-rw-r--r-- 1 testuser3 testuser3 3771 Mar 31  2024 .bashrc
+-rw-r--r-- 1 testuser3 testuser3  807 Mar 31  2024 .profile
+
+--- -m creates the home dir, -s sets the shell, -c sets the GECOS comment.
+
+===== 6. Cleaning up test users =====
+$ userdel -r testuser1 2>/dev/null; echo 'testuser1 removed'
+testuser1 removed
+
+$ deluser --remove-home testuser2 2>&1 | tail -2
+warn: `/usr/bin/crontab' not executed. Skipping crontab removal. Package `cron' required.
+info: Removing user `testuser2' ...
+
+$ userdel -r testuser3 2>/dev/null; echo 'testuser3 removed'
+testuser3 removed
+
+$ grep -cE '^testuser' /etc/passwd || echo '0 test users remain'
+0
+0 test users remain
+

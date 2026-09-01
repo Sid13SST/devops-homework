@@ -1,0 +1,394 @@
+
+##################################################
+## A. NAVIGATION
+##################################################
+
+$ pwd
+/tmp/cheat
+
+$ cd /etc && pwd
+/etc
+
+$ cd /tmp/cheat && pwd
+/tmp/cheat
+
+$ ls /
+bin
+boot
+dev
+etc
+home
+lib
+lib64
+media
+mnt
+opt
+proc
+root
+run
+sbin
+srv
+sys
+tmp
+usr
+var
+work
+
+$ ls -lh /etc/hostname
+-rw-r--r-- 1 root root 13 Sep  1 13:05 /etc/hostname
+
+$ ls -la /root | head -6
+total 16
+drwx------ 2 root root 4096 Aug 10 14:55 .
+drwxr-xr-x 1 root root 4096 Sep  1 13:05 ..
+-rw-r--r-- 1 root root 3106 Apr 22  2024 .bashrc
+-rw-r--r-- 1 root root  161 Apr 22  2024 .profile
+
+
+##################################################
+## B. CREATING AND REMOVING
+##################################################
+
+$ mkdir -p project/src/utils
+
+$ tree project 2>/dev/null || find project -print
+project
+project/src
+project/src/utils
+
+$ touch project/src/app.py project/README.md
+
+$ ls -R project
+project:
+README.md
+src
+
+project/src:
+app.py
+utils
+
+project/src/utils:
+
+$ cp project/README.md project/README.bak
+
+$ mv project/README.bak project/OLD.md
+
+$ rm project/OLD.md && echo removed
+removed
+
+$ rm -r project/src/utils && echo 'recursively removed'
+recursively removed
+
+
+##################################################
+## C. VIEWING FILE CONTENT
+##################################################
+
+$ cat sample.txt
+line one
+line two
+line three
+line four
+line five
+
+$ head -2 sample.txt
+line one
+line two
+
+$ tail -2 sample.txt
+line four
+line five
+
+$ wc -l sample.txt
+5 sample.txt
+
+$ wc -w sample.txt
+10 sample.txt
+
+$ nl sample.txt
+     1	line one
+     2	line two
+     3	line three
+     4	line four
+     5	line five
+
+$ less sample.txt   # interactive pager - q to quit (not run here)
+
+
+##################################################
+## D. SEARCHING
+##################################################
+
+$ grep 'three' sample.txt
+line three
+
+$ grep -n 'line' sample.txt
+1:line one
+2:line two
+3:line three
+4:line four
+5:line five
+
+$ grep -c 'line' sample.txt
+5
+
+$ grep -i 'LINE ONE' sample.txt
+line one
+
+$ grep -v 'line one' sample.txt
+line two
+line three
+line four
+line five
+
+$ find /tmp/cheat -name '*.txt'
+/tmp/cheat/sample.txt
+
+$ find /tmp/cheat -type d
+/tmp/cheat
+/tmp/cheat/project
+/tmp/cheat/project/src
+
+$ which bash
+/usr/bin/bash
+
+$ whereis ls
+ls: /usr/bin/ls
+
+
+##################################################
+## E. PERMISSIONS AND OWNERSHIP
+##################################################
+
+$ ls -l sample.txt
+-rw-r--r-- 1 root root 49 Sep  1 13:05 sample.txt
+
+$ chmod 644 sample.txt && ls -l sample.txt
+-rw-r--r-- 1 root root 49 Sep  1 13:05 sample.txt
+
+$ chmod +x sample.txt && ls -l sample.txt
+-rwxr-xr-x 1 root root 49 Sep  1 13:05 sample.txt
+
+$ chmod 600 sample.txt && ls -l sample.txt
+-rw------- 1 root root 49 Sep  1 13:05 sample.txt
+
+--- rwx = 4+2+1. 644 = rw-r--r-- ; 755 = rwxr-xr-x ; 600 = rw-------
+
+$ useradd -m demo 2>/dev/null; chown demo:demo sample.txt && ls -l sample.txt
+-rw------- 1 demo demo 49 Sep  1 13:05 sample.txt
+
+$ chown root:root sample.txt && ls -l sample.txt
+-rw------- 1 root root 49 Sep  1 13:05 sample.txt
+
+
+##################################################
+## F. PROCESSES
+##################################################
+
+$ ps
+  PID TTY          TIME CMD
+    1 ?        00:00:00 bash
+  264 ?        00:00:00 ps
+
+$ ps aux | head -5
+USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root         1  0.2  0.0   4324  3456 ?        Ss   13:05   0:00 bash /work/cheatsheet-demo.sh
+root       265  0.0  0.0   7888  4032 ?        R    13:05   0:00 ps aux
+root       266  0.0  0.0   2708  1296 ?        S    13:05   0:00 head -5
+
+$ ps -ef | head -5
+UID        PID  PPID  C STIME TTY          TIME CMD
+root         1     0  0 13:05 ?        00:00:00 bash /work/cheatsheet-demo.sh
+root       267     1  0 13:05 ?        00:00:00 ps -ef
+root       268     1  0 13:05 ?        00:00:00 head -5
+
+$ ps -p 269 -o pid,ppid,cmd,%cpu,%mem
+  PID  PPID CMD                         %CPU %MEM
+  269     1 sleep 300                    0.0  0.0
+
+$ kill 269 && echo 'sent SIGTERM to 269'
+sent SIGTERM to 269
+
+$ ps -p 269 -o pid= || echo 'process is gone'
+process is gone
+
+$ top      # interactive live process viewer (not run here)
+$ htop     # nicer version of top, needs installing
+
+
+##################################################
+## G. DISK AND MEMORY
+##################################################
+
+$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+overlay        1007G   24G  933G   3% /
+tmpfs            64M     0   64M   0% /dev
+shm              64M     0   64M   0% /dev/shm
+C:\             475G  326G  150G  69% /work
+/dev/sdd       1007G   24G  933G   3% /etc/hosts
+tmpfs           3.8G     0  3.8G   0% /proc/acpi
+tmpfs           3.8G     0  3.8G   0% /proc/scsi
+tmpfs           3.8G     0  3.8G   0% /sys/firmware
+
+$ df -h /
+Filesystem      Size  Used Avail Use% Mounted on
+overlay        1007G   24G  933G   3% /
+
+$ du -sh /tmp/cheat
+16K	/tmp/cheat
+
+$ du -h --max-depth=1 /tmp/cheat
+8.0K	/tmp/cheat/project
+16K	/tmp/cheat
+
+$ free -h
+               total        used        free      shared  buff/cache   available
+Mem:           7.6Gi       1.8Gi       196Mi        25Mi       5.8Gi       5.8Gi
+Swap:          2.0Gi       1.5Mi       2.0Gi
+
+
+##################################################
+## H. SYSTEM INFORMATION
+##################################################
+
+$ uname -a
+Linux fed526a31ff5 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+
+$ uname -r
+6.6.87.2-microsoft-standard-WSL2
+
+$ hostname
+fed526a31ff5
+
+$ whoami
+root
+
+$ id
+uid=0(root) gid=0(root) groups=0(root)
+
+$ date
+Tue Sep  1 13:06:00 UTC 2026
+
+$ uptime
+ 13:06:00 up  1:20,  0 user,  load average: 0.25, 0.35, 0.38
+
+$ cat /etc/os-release | head -4
+PRETTY_NAME="Ubuntu 24.04.4 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.4 LTS (Noble Numbat)"
+
+
+##################################################
+## I. TEXT PROCESSING PIPELINE
+##################################################
+
+$ cat people.csv
+alice,30,engineer
+bob,25,designer
+carol,35,manager
+
+$ cut -d, -f1 people.csv
+alice
+bob
+carol
+
+$ cut -d, -f1,3 people.csv
+alice,engineer
+bob,designer
+carol,manager
+
+$ sort -t, -k2 -n people.csv
+bob,25,designer
+alice,30,engineer
+carol,35,manager
+
+$ awk -F, '{print $1 " is a " $3}' people.csv
+alice is a engineer
+bob is a designer
+carol is a manager
+
+$ sed 's/engineer/developer/' people.csv
+alice,30,developer
+bob,25,designer
+carol,35,manager
+
+$ cat people.csv | tr 'a-z' 'A-Z'
+ALICE,30,ENGINEER
+BOB,25,DESIGNER
+CAROL,35,MANAGER
+
+$ uniq -c <(printf 'a\na\nb\n')
+      2 a
+      1 b
+
+
+##################################################
+## J. REDIRECTION AND PIPES
+##################################################
+
+$ echo 'written with >' > out.txt; cat out.txt
+written with >
+
+$ echo 'appended with >>' >> out.txt; cat out.txt
+written with >
+appended with >>
+
+$ ls /nonexistent 2> err.txt; cat err.txt
+ls: cannot access '/nonexistent': No such file or directory
+
+$ ls /nonexistent > all.txt 2>&1; cat all.txt
+ls: cannot access '/nonexistent': No such file or directory
+
+$ ps aux | grep -c bash
+2
+
+
+##################################################
+## K. ARCHIVES AND COMPRESSION
+##################################################
+
+$ tar -czf archive.tar.gz sample.txt people.csv && ls -lh archive.tar.gz
+-rw-r--r-- 1 root root 220 Sep  1 13:06 archive.tar.gz
+
+$ tar -tzf archive.tar.gz
+sample.txt
+people.csv
+
+$ mkdir -p extracted && tar -xzf archive.tar.gz -C extracted && ls extracted
+people.csv
+sample.txt
+
+$ gzip -k sample.txt && ls -l sample.txt.gz
+-rw------- 1 root root 62 Sep  1 13:05 sample.txt.gz
+
+$ gunzip sample.txt.gz && echo decompressed
+gzip: sample.txt already exists;	not overwritten
+
+
+##################################################
+## L. LINKS AND ENVIRONMENT
+##################################################
+
+$ ln -s /tmp/cheat/sample.txt /tmp/cheat/link.txt && ls -l link.txt
+lrwxrwxrwx 1 root root 21 Sep  1 13:06 link.txt -> /tmp/cheat/sample.txt
+
+$ echo $HOME
+/root
+
+$ echo $PATH
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+$ export MYVAR='hello devops'; echo $MYVAR
+hello devops
+
+$ env | head -5
+HOSTNAME=fed526a31ff5
+MYVAR=hello devops
+PWD=/tmp/cheat
+HOME=/root
+SHLVL=1
+
+$ history 2>/dev/null | tail -3 || echo '(history is a shell builtin, empty in non-interactive shells)'
+

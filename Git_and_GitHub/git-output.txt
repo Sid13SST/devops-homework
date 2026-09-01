@@ -1,0 +1,239 @@
+$ git init
+Initialized empty Git repository in /tmp/gitdemo/.git/
+
+
+==================================================
+== TASK 1 - git commit -m   VS   git commit -a -m
+==================================================
+
+### Step 1: create a file and make the FIRST commit.
+### A brand new file is UNTRACKED, so it must be staged with 'git add' first.
+$ echo 'version 1' > app.txt
+
+$ git status --short
+?? app.txt
+
+--- '??' means untracked. Try committing with -a -m and watch it be ignored:
+$ git commit -a -m 'attempt to commit an untracked file'
+On branch main
+
+Initial commit
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	app.txt
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+>>> RESULT: nothing was committed. -a does NOT pick up UNTRACKED files.
+
+$ git add app.txt
+
+$ git commit -m 'commit 1: add app.txt'
+[main (root-commit) 2f5f576] commit 1: add app.txt
+ 1 file changed, 1 insertion(+)
+ create mode 100644 app.txt
+
+### Step 2: MODIFY the now-tracked file.
+$ echo 'version 2' > app.txt
+
+$ git status --short
+ M app.txt
+
+--- ' M' means a TRACKED file was modified but not staged.
+
+### Step 3: 'git commit -m' alone commits NOTHING here, because nothing is staged.
+$ git commit -m 'commit with -m only'
+On branch main
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   app.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+>>> RESULT: refused - 'no changes added to commit'.
+
+### Step 4: 'git commit -a -m' stages all MODIFIED TRACKED files automatically.
+$ git commit -a -m 'commit 2: update app.txt using -a -m'
+[main c4fd096] commit 2: update app.txt using -a -m
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+>>> RESULT: committed in one step - no separate 'git add' needed.
+$ git log --oneline
+c4fd096 commit 2: update app.txt using -a -m
+2f5f576 commit 1: add app.txt
+
+### Step 5: side-by-side proof with BOTH a modified tracked file and a new untracked file.
+$ echo 'version 3' > app.txt
+
+$ echo 'brand new file' > newfile.txt
+
+$ git status --short
+ M app.txt
+?? newfile.txt
+
+$ git commit -a -m 'commit 3: -a picks up app.txt but not newfile.txt'
+[main 54b22c1] commit 3: -a picks up app.txt but not newfile.txt
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+$ git status --short
+?? newfile.txt
+
+>>> app.txt was committed. newfile.txt is STILL untracked ('??').
+
+$ git add newfile.txt && git commit -m 'commit 4: add newfile.txt explicitly'
+[main 377c54d] commit 4: add newfile.txt explicitly
+ 1 file changed, 1 insertion(+)
+ create mode 100644 newfile.txt
+
+$ git status --short
+
+$ git log --oneline
+377c54d commit 4: add newfile.txt explicitly
+54b22c1 commit 3: -a picks up app.txt but not newfile.txt
+c4fd096 commit 2: update app.txt using -a -m
+2f5f576 commit 1: add app.txt
+
+
+SUMMARY OF TASK 1
+-----------------
+  git commit -m 'msg'      -> commits ONLY what is already staged (git add).
+  git commit -a -m 'msg'   -> automatically stages every MODIFIED and DELETED
+                              TRACKED file, then commits. It still IGNORES
+                              untracked (brand new) files.
+
+==================================================
+== TASK 2 - GIT CHERRY-PICK
+==================================================
+
+### Step 1: main branch already has 4 commits. View them with git log.
+$ git branch --show-current
+main
+
+$ git log --oneline
+377c54d commit 4: add newfile.txt explicitly
+54b22c1 commit 3: -a picks up app.txt but not newfile.txt
+c4fd096 commit 2: update app.txt using -a -m
+2f5f576 commit 1: add app.txt
+
+$ git log --oneline --graph --all
+* 377c54d commit 4: add newfile.txt explicitly
+* 54b22c1 commit 3: -a picks up app.txt but not newfile.txt
+* c4fd096 commit 2: update app.txt using -a -m
+* 2f5f576 commit 1: add app.txt
+
+### Step 2: create a new branch and switch to it.
+$ git checkout -b feature
+Switched to a new branch 'feature'
+
+$ git branch
+* feature
+  main
+
+### Step 3: make 3 commits on the feature branch.
+$ echo 'feature: login form' > login.txt && git add login.txt && git commit -m 'feat: add login form'
+[feature 975b08b] feat: add login form
+ 1 file changed, 1 insertion(+)
+ create mode 100644 login.txt
+
+$ echo 'feature: URGENT security patch' > security-patch.txt && git add security-patch.txt && git commit -m 'fix: URGENT security patch'
+[feature b13bf89] fix: URGENT security patch
+ 1 file changed, 1 insertion(+)
+ create mode 100644 security-patch.txt
+
+$ echo 'feature: experimental dashboard' > dashboard.txt && git add dashboard.txt && git commit -m 'feat: experimental dashboard'
+[feature 1455084] feat: experimental dashboard
+ 1 file changed, 1 insertion(+)
+ create mode 100644 dashboard.txt
+
+### Step 4: view the feature branch history and IDENTIFY the commit we want.
+$ git log --oneline
+1455084 feat: experimental dashboard
+b13bf89 fix: URGENT security patch
+975b08b feat: add login form
+377c54d commit 4: add newfile.txt explicitly
+54b22c1 commit 3: -a picks up app.txt but not newfile.txt
+c4fd096 commit 2: update app.txt using -a -m
+2f5f576 commit 1: add app.txt
+
+--- We want ONLY the security patch, not the login form or the dashboard.
+
+$ PATCH_SHA=$(git log --format='%H' --grep='URGENT security patch')
+Identified commit: b13bf891065a45eb3eb91d87bf70ba075c481907
+
+$ git show --stat b13bf89
+commit b13bf891065a45eb3eb91d87bf70ba075c481907
+Author: Siddhant <siddhant.prasad8@gmail.com>
+Date:   Tue Sep 1 13:11:06 2026 +0000
+
+    fix: URGENT security patch
+
+ security-patch.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+### Step 5: switch back to main. Note the patch file is NOT here.
+$ git checkout main
+Switched to branch 'main'
+
+$ git log --oneline
+377c54d commit 4: add newfile.txt explicitly
+54b22c1 commit 3: -a picks up app.txt but not newfile.txt
+c4fd096 commit 2: update app.txt using -a -m
+2f5f576 commit 1: add app.txt
+
+$ ls -1
+app.txt
+newfile.txt
+
+$ test -f security-patch.txt && echo present || echo 'security-patch.txt NOT on main yet'
+security-patch.txt NOT on main yet
+
+### Step 6: CHERRY-PICK just that one commit onto main.
+$ git cherry-pick b13bf89
+[main adfb258] fix: URGENT security patch
+ Date: Tue Sep 1 13:11:06 2026 +0000
+ 1 file changed, 1 insertion(+)
+ create mode 100644 security-patch.txt
+
+### Step 7: VERIFY the change is now on main.
+$ git log --oneline
+adfb258 fix: URGENT security patch
+377c54d commit 4: add newfile.txt explicitly
+54b22c1 commit 3: -a picks up app.txt but not newfile.txt
+c4fd096 commit 2: update app.txt using -a -m
+2f5f576 commit 1: add app.txt
+
+$ ls -1
+app.txt
+newfile.txt
+security-patch.txt
+
+$ cat security-patch.txt
+feature: URGENT security patch
+
+$ test -f login.txt && echo 'login.txt present' || echo 'login.txt NOT on main (correct - not cherry-picked)'
+login.txt NOT on main (correct - not cherry-picked)
+$ test -f dashboard.txt && echo 'dashboard.txt present' || echo 'dashboard.txt NOT on main (correct - not cherry-picked)'
+dashboard.txt NOT on main (correct - not cherry-picked)
+
+### Step 8: the cherry-picked commit is a NEW commit with a DIFFERENT SHA.
+$ git log --oneline -1 main   (new SHA on main)
+adfb258 fix: URGENT security patch
+$ git log --format='%h %s' --grep='URGENT' feature   (original SHA on feature)
+b13bf89 fix: URGENT security patch
+
+--- Same content and message, different commit hash: cherry-pick REPLAYS
+--- the diff as a brand new commit on the current branch.
+
+$ git log --oneline --graph --all
+* 1455084 feat: experimental dashboard
+* b13bf89 fix: URGENT security patch
+* 975b08b feat: add login form
+| * adfb258 fix: URGENT security patch
+|/  
+* 377c54d commit 4: add newfile.txt explicitly
+* 54b22c1 commit 3: -a picks up app.txt but not newfile.txt
+* c4fd096 commit 2: update app.txt using -a -m
+* 2f5f576 commit 1: add app.txt
+
