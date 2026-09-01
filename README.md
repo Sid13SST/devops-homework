@@ -2,8 +2,10 @@
 
 All seven DevOps homework tasks, each in its own folder with its own `README.md`.
 
-**Author:** Siddhant Prasad
-**Enrollment number:** `<ENROLLMENT_NUMBER>`
+| | |
+|---|---|
+| **Author** | Siddhant Prasad |
+| **Enrollment number** | 24BCS10255 |
 
 ---
 

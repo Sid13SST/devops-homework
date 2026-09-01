@@ -9,7 +9,7 @@ Source task: **Docker Multi-Stage Build Homework** (Task 1 build and run a multi
 | | |
 |---|---|
 | **Name** | Siddhant Prasad |
-| **Enrollment number** | `<ENROLLMENT_NUMBER>` |
+| **Enrollment number** | 24BCS10255 |
 | **Date** | 1 September 2026 |
 | **Docker version** | 29.4.1 |
 
