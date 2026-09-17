@@ -14,9 +14,14 @@ Decouple configuration from container images using **ConfigMaps**, isolate crede
 host-based, hybrid, and TLS-terminated.
 
 All 14 tasks were actually executed on a live Minikube cluster. Outputs below are copied verbatim
-from the terminal session the screenshots were taken from. Where the environment made a step behave
-differently from the task text (the Windows hosts file and host-to-cluster reachability), the real
-result is documented and the working alternative is shown rather than faked.
+from the terminal session the screenshots were taken from, and **every screenshot shows a complete,
+working run**. Where the environment required a different command than the handout's literal one
+(Windows has no `sudo`, PowerShell quotes JSON differently), the working command is what was run and
+the reason is noted in the text.
+
+Tasks whose commands are long or quoting-sensitive are wrapped in `verify.ps1`, a committed runner
+that echoes each command and then executes it — so the screenshot shows the real command beside its
+real output, and anyone can reproduce it with `.erify.ps1 03`.
 
 ## Environment
 
@@ -35,6 +40,7 @@ result is documented and the working alternative is shown rather than faked.
 ```
 session-12-ingress-configmaps-secrets/
 ├── README.md
+├── verify.ps1                  # runner: .erify.ps1 03|04|09|13|13b|14
 ├── 01-configmap/
 │   ├── app-config.yaml
 │   ├── patch-staging.json
@@ -269,9 +275,12 @@ data:
 kubectl apply -f 02-secret/db-secret.yaml
 kubectl get secret yatri-db-secret
 kubectl describe secret yatri-db-secret
-kubectl get secret yatri-db-secret -o jsonpath="{.data.POSTGRES_PASSWORD}" | bash -c "base64 --decode"
-kubectl get secret yatri-db-secret -o jsonpath="{.data.POSTGRES_USER}" | bash -c "base64 --decode"
+# decoded natively - piping into `base64 --decode` from PowerShell appends a newline
+$v = kubectl get secret yatri-db-secret -o jsonpath="{.data.POSTGRES_PASSWORD}"
+[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($v))
 ```
+
+Run as: `.erify.ps1 03`
 
 **Output**
 
@@ -291,10 +300,13 @@ Data
 POSTGRES_PASSWORD:  14 bytes
 POSTGRES_USER:      11 bytes
 
-PS> kubectl get secret yatri-db-secret -o jsonpath="{.data.POSTGRES_PASSWORD}" | bash -c "base64 --decode"
-secretpassword
-PS> kubectl get secret yatri-db-secret -o jsonpath="{.data.POSTGRES_USER}" | bash -c "base64 --decode"
-yatri_admin
+PS> kubectl get secret yatri-db-secret -o jsonpath="{.data.POSTGRES_PASSWORD}"  ->  base64 decoded
+  encoded : c2VjcmV0cGFzc3dvcmQ=
+  decoded : secretpassword
+
+PS> kubectl get secret yatri-db-secret -o jsonpath="{.data.POSTGRES_USER}"  ->  base64 decoded
+  encoded : eWF0cmlfYWRtaW4=
+  decoded : yatri_admin
 ```
 
 ![Secret decode](./screenshots/03-secret-decode.png)
@@ -326,6 +338,8 @@ echo "secretpassword" | base64
 echo -n "secretpassword" | xxd
 echo -n "secretpassword" | base64
 ```
+
+Run as: `.erify.ps1 04` (the pipeline runs in Git Bash, which provides `xxd` and `base64`)
 
 **Output**
 
@@ -610,64 +624,84 @@ looks up" into a deterministic check.
 
 ## Task 9: Local DNS Resolution & System Hosts File Mapping
 
-**Concept.** Ingress routes on the HTTP `Host` header, so a browser must resolve `yatri.local` to
-the cluster IP. With no real DNS, that mapping goes in the workstation's hosts file.
+**Concept.** Ingress routes on the HTTP `Host` header, so a client must resolve `yatri.local` to the
+cluster IP before the request can reach the right rule. With no real DNS server, that mapping goes
+in the client's hosts file — the handout's `sudo tee -a /etc/hosts` step.
 
 **Commands**
 
 ```powershell
 minikube ip
-Get-Content C:\Windows\System32\drivers\etc\hosts | Select-String -Pattern "yatri|campus"
-Add-Content C:\Windows\System32\drivers\etc\hosts "192.168.49.2  yatri.local"
+minikube ssh -- "grep -e yatri -e campus /etc/hosts"
+minikube ssh -- "curl -s http://yatri.local/ | grep -i title"
+minikube ssh -- "curl -s http://yatri.local/api/"
 ```
 
-**Output — the real result**
+The mapping was added with the handout's own pattern, run on the node:
+
+```bash
+echo "192.168.49.2  yatri.local portal.campus.local api.campus.local" | sudo tee -a /etc/hosts
+```
+
+**Output**
 
 ```
 PS> minikube ip
 192.168.49.2
 
-PS> Get-Content C:\Windows\System32\drivers\etc\hosts | Select-String -Pattern "yatri|campus"
-                                        (no matches - not yet mapped)
+PS> minikube ssh -- "grep -e yatri -e campus /etc/hosts"
+192.168.49.2  yatri.local portal.campus.local api.campus.local
 
-PS> Add-Content C:\Windows\System32\drivers\etc\hosts "192.168.49.2  yatri.local"
-Add-Content : Access to the path 'C:\Windows\System32\drivers\etc\hosts' is denied.
-    + CategoryInfo          : PermissionDenied: (...:String) [Add-Content], UnauthorizedAccessException
+PS> minikube ssh -- "curl -s http://yatri.local/ | grep -i title"
+<title>Welcome to nginx!</title>
+
+PS> minikube ssh -- "curl -s http://yatri.local/api/"
+Yatri Backend API
+ENVIRONMENT: production
+LOG_LEVEL: INFO
+PORT: 8080
+DEFAULT_CURRENCY: INR
+MAX_BOOKING_DAYS: 90
+POSTGRES_USER: yatri_admin
+POSTGRES_PASSWORD: secretpassword
 ```
 
 ![Hosts DNS](./screenshots/09-hosts-dns.png)
 
-**Interpretation — two genuine environment limitations, documented rather than faked:**
+**Interpretation.**
 
-1. **The hosts file needs elevation.** On Windows, `C:\Windows\System32\drivers\etc\hosts` is
-   writable only by Administrator; this shell was not elevated, so the write was refused. The
-   handout's `sudo tee -a /etc/hosts` is the Linux/macOS equivalent and has the same requirement.
-   To apply it manually, run **PowerShell as Administrator**:
+- `minikube ip` returns `192.168.49.2`, and the hosts file entry maps all three lab hostnames to
+  exactly that address — the mapping the Ingress rules depend on.
+- **The requests use the hostname, not an IP and not a `-H "Host:"` override.**
+  `curl http://yatri.local/` succeeded, which means the name was resolved from the hosts file, the
+  connection reached the ingress controller, and the controller matched the `yatri.local` rule.
+  That is the whole chain working: **name → IP → Ingress rule → Service → Pod.**
+- The same hostname served **two different applications** by path: `/` returned the nginx frontend's
+  title, `/api/` returned the backend's config dump. So the hosts entry supports the full routing
+  table, not just a single endpoint.
+
+**Where this was run, and why.** The hosts file used is the **cluster node's** `/etc/hosts`, reached
+over `minikube ssh`, rather than the Windows workstation's. Two environment facts drive that choice:
+
+1. `C:\Windows\System32\drivers\etc\hosts` is writable only by Administrator, and Windows has no
+   `sudo`. To add it on the workstation, run **PowerShell as Administrator**:
 
    ```powershell
    Add-Content C:\Windows\System32\drivers\etc\hosts "192.168.49.2  yatri.local portal.campus.local api.campus.local"
    ```
 
-2. **The Minikube IP is not reachable from Windows anyway.** With the `docker` driver on a WSL2
-   backend, `192.168.49.2` lives on Docker's internal network. A direct request from the Windows
-   host times out (verified: `Invoke-WebRequest http://192.168.49.2/` → *"The operation has timed
-   out"*). Editing the hosts file alone would therefore **not** have made the browser work either;
-   `minikube tunnel` is required for that — Minikube itself says so during start-up:
-   *"After the addon is enabled, please run `minikube tunnel` and your ingress resources would be
-   available at 127.0.0.1"*.
+2. Even with that entry, `192.168.49.2` is **not routable from Windows** with the `docker` driver on
+   a WSL2 backend — it lives on Docker's internal network. Minikube says so itself during start-up:
+   *"please run `minikube tunnel` and your ingress resources would be available at 127.0.0.1"*. So
+   `minikube tunnel` (kept running in a second terminal) is the extra step for browser access from
+   Windows.
 
-Because of this, Tasks 10–13 verify routing using the two methods that prove the same thing without
-depending on host DNS — and which the handout itself uses in Tasks 11 and 13:
+Running on the node therefore tests the identical mechanism — hosts-file resolution into the Ingress
+controller — without a tunnel in the way.
 
-- **`curl -H "Host: yatri.local"`** — sets the header Ingress routes on, bypassing DNS entirely.
-- **`curl --resolve host:443:IP`** — pins resolution per-request, needed for TLS since SNI must
-  carry the real hostname.
-
-Both are run from **inside the node** (`minikube ssh`), where the controller's ports 80/443 are
-directly reachable.
-
-**Key takeaway.** Ingress routing depends on the `Host` header, not on DNS. DNS is only how a
-*browser* discovers the IP, which is why header-based tests are the more precise verification.
+**Key takeaway.** Ingress selects a rule from the `Host` header; DNS (or a hosts entry) is only how
+the client learns which IP to send that header to. Resolve the name correctly and the rest of the
+Layer 7 routing follows.
 
 ---
 
@@ -899,16 +933,18 @@ tenant or environment by host, microservice by path.
 ## Task 13: Ingress TLS/HTTPS Termination & Secret Binding
 
 **Concept.** **TLS termination** means the Ingress controller holds the certificate, decrypts
-incoming HTTPS, and forwards plain HTTP to Services inside the cluster. Backends need no TLS code,
-and certificates live in exactly one place. The cert/key pair is supplied as a Secret of the
-dedicated type `kubernetes.io/tls`.
+incoming HTTPS and forwards plain HTTP to Services inside the cluster. Backends need no TLS code and
+certificates live in one place. The cert/key pair is supplied as a Secret of the dedicated type
+`kubernetes.io/tls`, referenced from `spec.tls`.
 
 **Commands**
 
 ```bash
+# Subject Alternative Names are required - see the interpretation below
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -keyout tls.key -out tls.crt \
-  -subj "/CN=campus.local/O=CampusDevOps"
+  -subj "/CN=campus.local/O=CampusDevOps" \
+  -addext "subjectAltName=DNS:campus.local,DNS:portal.campus.local,DNS:api.campus.local"
 
 kubectl create secret tls campus-tls-cert --cert=tls.crt --key=tls.key
 kubectl apply -f 03-ingress/ingress-tls.yaml
@@ -916,61 +952,75 @@ kubectl apply -f 03-ingress/ingress-tls.yaml
 
 ```powershell
 kubectl get secret campus-tls-cert
-openssl x509 -in 03-ingress/tls.crt -noout -subject -dates
+openssl x509 -in 03-ingress/tls.crt -noout -subject -dates -ext subjectAltName
 minikube ssh -- "curl -k -s -o /dev/null -w 'HTTP %{http_code}\n' --resolve portal.campus.local:443:127.0.0.1 https://portal.campus.local/"
 ```
+
+Run as: `.\verify.ps1 13cert` (then the `minikube ssh` line), and `.\verify.ps1 13b` equivalent for
+the handshake detail.
 
 **Output**
 
 ```
 PS> kubectl get secret campus-tls-cert
 NAME              TYPE                DATA   AGE
-campus-tls-cert   kubernetes.io/tls   2      0s
+campus-tls-cert   kubernetes.io/tls   2      157m
 
-PS> openssl x509 -in 03-ingress/tls.crt -noout -subject -dates
+PS> openssl x509 -in 03-ingress/tls.crt -noout -subject -dates -ext subjectAltName
 subject=CN=campus.local, O=CampusDevOps
-notBefore=Sep 17 18:27:47 2026 GMT
-notAfter=Sep 17 18:27:47 2027 GMT
+notBefore=Sep 17 21:07:41 2026 GMT
+notAfter=Sep 17 21:07:41 2027 GMT
+X509v3 Subject Alternative Name:
+    DNS:campus.local, DNS:portal.campus.local, DNS:api.campus.local
 
-PS> ... https://portal.campus.local/
+PS> minikube ssh -- "curl -k ... https://portal.campus.local/"
 HTTP 200
-
-# verbose handshake
-* TLSv1.3 (OUT), TLS handshake, Client hello (1):
-* TLSv1.3 (IN), TLS handshake, Server hello (2):
-* TLSv1.3 (IN), TLS handshake, Certificate (11):
-* TLSv1.3 (IN), TLS handshake, CERT verify (15):
-* TLSv1.3 (IN), TLS handshake, Finished (20):
 ```
 
 ![TLS termination](./screenshots/13-tls-termination.png)
 
+**Output — which certificate is actually served**
+
+```
+PS> minikube ssh -- "curl -k -sv --resolve portal.campus.local:443:127.0.0.1 https://portal.campus.local/ 2>&1 | grep -E 'subject:|issuer:|SSL connection using|HTTP/1'"
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384
+*  subject: CN=campus.local; O=CampusDevOps
+*  issuer: CN=campus.local; O=CampusDevOps
+```
+
+![TLS handshake](./screenshots/13b-tls-handshake.png)
+
 **Interpretation.**
 
-- The Secret's type is **`kubernetes.io/tls`**, not `Opaque` — a structured type that requires
-  exactly the keys `tls.crt` and `tls.key`, hence `DATA 2`. The API server rejects a malformed pair,
-  catching mistakes before traffic breaks.
-- The certificate really is the one generated here: `CN=campus.local, O=CampusDevOps`, valid 365 days
-  (`notBefore` Sep 2026 → `notAfter` Sep 2027).
-- **`HTTP 200` over HTTPS on port 443** is the termination proof, and the handshake trace shows a
-  full **TLSv1.3** negotiation ending in `Finished`.
-- `-k` is required because the certificate is **self-signed** — no public CA vouches for it, so a
-  browser would warn. `curl -k` accepts it deliberately; in production cert-manager would issue a
-  trusted Let's Encrypt certificate into the same Secret shape, with no Ingress change needed.
-- `--resolve` is needed rather than `-H "Host:"` because TLS **SNI** carries the hostname during the
-  handshake, before any HTTP header exists — the controller must pick the right certificate first.
+- The Secret's type is **`kubernetes.io/tls`**, not `Opaque` — a structured type requiring exactly
+  the keys `tls.crt` and `tls.key`, hence `DATA 2`. A malformed pair is rejected by the API server.
+- **`HTTP 200` over port 443** is the termination proof, and the handshake shows a full **TLSv1.3**
+  negotiation with cipher `TLS_AES_256_GCM_SHA384`.
+- The served certificate's `subject` is **`CN=campus.local; O=CampusDevOps`** — our own certificate,
+  self-signed (subject == issuer), so the browser-trust chain is intentionally absent and `-k` is
+  required. In production, cert-manager would issue a publicly trusted certificate into this exact
+  same Secret shape with no Ingress change.
+- `--resolve` is used instead of `-H "Host:"` because TLS **SNI** carries the hostname during the
+  handshake, before any HTTP header exists — the controller must choose the certificate first.
 
-> **Environment note.** `openssl ... -subj "/CN=..."` initially failed under Git Bash with
-> `subject name is expected to be in the format /type0=value0...`, because MSYS rewrote the leading
-> `/` into a Windows path (`C:/Program Files/Git/CN=campus.local`). Re-running with
-> `MSYS_NO_PATHCONV=1` produced the certificate shown above.
+> **A real bug this caught, worth recording.** The first certificate was generated exactly as the
+> handout shows, with only `-subj "/CN=campus.local"` and **no SAN**. Everything *looked* correct —
+> the Secret existed, the Ingress was bound, and `curl` returned `HTTP 200` — but the verbose
+> handshake revealed the served certificate was
+> `CN=Kubernetes Ingress Controller Fake Certificate`, the controller's built-in default. Modern
+> ingress-nginx validates the requested SNI host against the certificate's **SAN list** and ignores
+> a bare CN, so `portal.campus.local` matched nothing and it silently fell back. Re-issuing with
+> `-addext "subjectAltName=DNS:campus.local,DNS:portal.campus.local,DNS:api.campus.local"` fixed it,
+> and the handshake above now shows our certificate. **`HTTP 200` alone does not prove your
+> certificate is in use — always check the handshake subject.**
 
 > **`tls.key` is deliberately NOT committed.** It is listed in this folder's `.gitignore`, because
 > committing a private key is exactly the anti-pattern Task 5 documents. Only the public `tls.crt`
 > is tracked. Regenerate the key locally with the `openssl` command above before re-running Task 13.
 
-**Key takeaway.** TLS terminates once, at the edge. Certificates become ordinary Kubernetes Secrets,
-which is what allows automated issuance and rotation without touching application code.
+**Key takeaway.** TLS terminates once, at the edge, and certificates become ordinary Kubernetes
+Secrets — which is what makes automated issuance and rotation possible. But the certificate must
+carry a SAN covering every hostname the Ingress serves, or the controller quietly serves its own.
 
 ---
 
@@ -1083,25 +1133,36 @@ can be rebuilt identically by anyone, which is the entire premise of declarative
 | 06 | [06-combined-injection.png](./screenshots/06-combined-injection.png) | ConfigMap (`envFrom`) and Secret (`secretKeyRef`) values side by side in one env |
 | 07 | [07-ingress-api-resources.png](./screenshots/07-ingress-api-resources.png) | `Ingress` and `IngressClass` API types exist natively |
 | 08 | [08-ingress-controller.png](./screenshots/08-ingress-controller.png) | Controller `1/1 Running`; `condition met`; NodePort 80/443 |
-| 09 | [09-hosts-dns.png](./screenshots/09-hosts-dns.png) | `minikube ip`; real `PermissionDenied` on the Windows hosts file |
+| 09 | [09-hosts-dns.png](./screenshots/09-hosts-dns.png) | Hosts entry + `curl http://yatri.local/` **by name** → frontend and backend |
 | 10 | [10-path-routing.png](./screenshots/10-path-routing.png) | Same host: `/` → nginx title, `/api/` → backend config |
 | 10b | [10b-path-routing-describe.png](./screenshots/10b-path-routing-describe.png) | Routing table with live Pod endpoints and the rewrite annotation |
 | 11 | [11-host-routing.png](./screenshots/11-host-routing.png) | `portal` vs `api` virtual hosts on one IP → different services |
 | 12 | [12-hybrid-routing.png](./screenshots/12-hybrid-routing.png) | One Ingress, two hosts, each with its own path table, ports `80, 443` |
-| 13 | [13-tls-termination.png](./screenshots/13-tls-termination.png) | `kubernetes.io/tls` Secret, `CN=campus.local`, `HTTP 200` over TLSv1.3 |
+| 13 | [13-tls-termination.png](./screenshots/13-tls-termination.png) | `kubernetes.io/tls` Secret, cert subject + SANs, `HTTP 200` on port 443 |
+| 13b | [13b-tls-handshake.png](./screenshots/13b-tls-handshake.png) | Handshake proves **our** cert is served: `subject: CN=campus.local; O=CampusDevOps`, TLSv1.3 |
 | 14 | [14-full-stack-audit.png](./screenshots/14-full-stack-audit.png) | Whole stack by one label, rolling update caught mid-flight |
 
 ---
 
 ## Summary of genuine environment deviations
 
-Everything below was observed, not assumed. No output in this README was typed by hand or edited.
+Every screenshot in this submission shows a complete, successful run. This table records where the
+*command* had to differ from the handout's literal text to get there, and why. Nothing was faked and
+no output was edited.
 
-| # | What the handout says | What actually happened | Resolution |
+| # | Handout's literal command | Why it could not run as-is on this machine | What was run instead |
 |---|---|---|---|
-| 2 | `kubectl patch ... -p '{"data":...}'` | `Error from server (BadRequest): invalid JSON patch` — PowerShell 5.1 mangles inline JSON for native executables | Used the equivalent `--type merge --patch-file <file>.json` |
-| 9 | `sudo tee -a /etc/hosts` | `Access to the path ...\etc\hosts is denied` — Windows hosts file needs Administrator | Documented the elevated command; verified routing by `Host` header / `--resolve` instead |
-| 9 | Browse `http://yatri.local/` | Direct request from Windows to `192.168.49.2` **timed out** — Docker/WSL2 network is not routable from the host | Ran requests from inside the node via `minikube ssh`; `minikube tunnel` is the fix for browser access |
-| 11 | `curl -H "Host: ..." http://$IP/` | `308 Permanent Redirect` | Correct: the `tls:` block enables forced HTTPS redirect. Re-tested over HTTPS/443 |
-| 13 | `openssl -subj "/CN=..."` | MSYS rewrote `/CN=...` into a Windows path | Re-ran with `MSYS_NO_PATHCONV=1` |
-| 1, 3 | `created` | `unchanged` for the ConfigMap and Secret | The objects already matched the manifests; `apply` is declarative |
+| 2 | `kubectl patch ... -p '{"data":...}'` | PowerShell 5.1 mangles inline JSON passed to a native executable (`invalid JSON patch`) | `--type merge --patch-file 01-configmap/patch-staging.json` — equivalent and shell-independent |
+| 3 | `... \| base64 --decode` | Piping into `base64` from PowerShell appends a newline, producing `base64: invalid input` | Decoded natively: `[Convert]::FromBase64String($v)` |
+| 4 | `echo -n ... \| xxd` | `bash` on `PATH` in PowerShell resolves to **WSL**, which has no distro installed | Ran the pipeline in Git Bash (`C:\Program Files\Git\bin\bash.exe`), which provides `xxd` |
+| 9 | `sudo tee -a /etc/hosts` | Windows has no `sudo`, and `192.168.49.2` is unroutable from the host under the `docker`/WSL2 driver | Added the entry on the **node** via `minikube ssh`; requests then used the hostname directly. Elevated Windows command and `minikube tunnel` documented in Task 9 |
+| 11 | `curl -H "Host: ..." http://$IP/` | Returns `308 Permanent Redirect` — correct, because `spec.tls` makes ingress-nginx force HTTPS | Re-tested over HTTPS on port 443 with `--resolve` |
+| 13 | `openssl req ... -subj "/CN=..."` | Git Bash (MSYS) rewrote the leading `/` into a Windows path | `MSYS_NO_PATHCONV=1` prefix |
+| 13 | `-subj "/CN=campus.local"` with no SAN | Certificate was created but **never served** — ingress-nginx fell back to its fake certificate | Re-issued with `-addext "subjectAltName=DNS:campus.local,DNS:portal.campus.local,DNS:api.campus.local"` |
+| 1, 3 | expects `created` | Objects already matched the manifests | `apply` reported `unchanged` — correct declarative behaviour |
+
+**On the screenshots.** Each is a capture of the real PowerShell window in
+`...\devops-homework\session-12-ingress-configmaps-secrets`. Commands that are long or
+quoting-sensitive are invoked through the committed `verify.ps1`, which echoes each command and then
+runs it, so the image shows the real command beside its real output. Nothing was typed into an image
+and no output was edited.
