@@ -1,6 +1,6 @@
 # DevOps Homework — Section B
 
-All eight DevOps homework tasks, each in its own folder with its own `README.md`.
+All nine DevOps homework tasks, each in its own folder with its own `README.md`.
 
 | | |
 |---|---|
@@ -23,6 +23,7 @@ The submission form has one field per topic. Each links to that topic's `README.
 | 6 | **Linux Fundamentals** | [`Linux_Fundamentals/`](Linux_Fundamentals/README.md) | Linux Homework Tasks |
 | 7 | **Networking** | [`Networking/`](Networking/README.md) | Networking Homework Tasks |
 | 8 | **Kubernetes Services** | [`session-11-kubernetes-services/`](session-11-kubernetes-services/README.md) | Session 11 — Kubernetes Services |
+| 9 | **Kubernetes Core Objects** | [`session10-k8s-core-objects/`](session10-k8s-core-objects/README.md) | Session 10 — Kubernetes Core Objects |
 
 ---
 
@@ -51,6 +52,9 @@ Twelve categories of networking commands — `ip`, `route`, `ping`, `traceroute`
 
 ### 8. [Kubernetes Services](session-11-kubernetes-services/README.md)
 All five Service types — **ClusterIP, NodePort, LoadBalancer, Headless and ExternalName** — on a Minikube cluster, sharing one Nginx Pod named `web`. ClusterIP was tested with `curl` from inside the cluster. NodePort and LoadBalancer were opened in the browser through `minikube service --url`. Headless DNS returned the Pod IP directly, and ExternalName returned a CNAME to `google.com`. Each Service folder has its YAML, terminal and browser screenshots, and a README.
+
+### 9. [Kubernetes Core Objects](session10-k8s-core-objects/README.md)
+All five core workload objects — **Pod, ReplicaSet, Deployment, StatefulSet and DaemonSet** — applied and verified on Minikube, using the reference repository's manifests **byte-for-byte** (MD5-verified, including its `deamonset.yml` spelling). Highlights proven with real output: a two-container Pod at `2/2` sharing one IP; **ReplicaSet self-healing** (deleted Pod replaced under a new name in 6s); the Deployment → ReplicaSet → Pod chain confirmed through `ownerReferences`, plus scaling 3→5→3; a StatefulSet with stable ordinals `mysql-0/1/2`, ordered start-up and **one Bound 5Gi PVC per Pod**; and a DaemonSet whose `DESIRED 1` is derived from the cluster's single node. 21 terminal screenshots.
 
 ---
 

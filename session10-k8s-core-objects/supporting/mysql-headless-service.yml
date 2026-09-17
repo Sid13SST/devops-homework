@@ -1,0 +1,16 @@
+# Supporting resource only -- NOT part of the five reference core-object manifests.
+# statefulset.yml declares `serviceName: "mysql"`, which is the headless Service
+# that backs the per-Pod stable DNS names mysql-0/1/2.mysql.<namespace>.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+spec:
+  clusterIP: None          # headless: no load-balanced VIP, DNS returns Pod IPs
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+      name: mysql
