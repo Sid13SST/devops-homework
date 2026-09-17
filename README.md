@@ -1,6 +1,6 @@
 # DevOps Homework — Section B
 
-All seven DevOps homework tasks, each in its own folder with its own `README.md`.
+All eight DevOps homework tasks, each in its own folder with its own `README.md`.
 
 | | |
 |---|---|
@@ -22,6 +22,7 @@ The submission form has one field per topic. Each links to that topic's `README.
 | 5 | **Docker Networking** | [`Docker_Networking/`](Docker_Networking/README.md) | Docker Networking & Volume Homework |
 | 6 | **Linux Fundamentals** | [`Linux_Fundamentals/`](Linux_Fundamentals/README.md) | Linux Homework Tasks |
 | 7 | **Networking** | [`Networking/`](Networking/README.md) | Networking Homework Tasks |
+| 8 | **Kubernetes Services** | [`session-11-kubernetes-services/`](session-11-kubernetes-services/README.md) | Session 11 — Kubernetes Services |
 
 ---
 
@@ -47,6 +48,9 @@ Soft vs hard links demonstrated at the inode level, including the decisive delet
 
 ### 7. [Networking](Networking/README.md)
 Twelve categories of networking commands — `ip`, `route`, `ping`, `traceroute`, `dig`/`nslookup`/`host`, `ss`/`netstat`, `nc`, `curl`/`wget`, `arp`, `whois`, `tcpdump` — each executed, with output and an explanation of what it means and when to reach for it.
+
+### 8. [Kubernetes Services](session-11-kubernetes-services/README.md)
+All five Service types — **ClusterIP, NodePort, LoadBalancer, Headless and ExternalName** — on a Minikube cluster, sharing one Nginx Pod named `web`. ClusterIP was tested with `curl` from inside the cluster. NodePort and LoadBalancer were opened in the browser through `minikube service --url`. Headless DNS returned the Pod IP directly, and ExternalName returned a CNAME to `google.com`. Each Service folder has its YAML, terminal and browser screenshots, and a README.
 
 ---
 
