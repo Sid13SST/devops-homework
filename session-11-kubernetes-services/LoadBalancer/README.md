@@ -4,6 +4,8 @@
 
 Manifest: [`web-service-loadbalancer.yaml`](web-service-loadbalancer.yaml). It maps port `8080` to container port `80`.
 
+![LoadBalancer YAML](screenshots/yaml-loadbalancer.png)
+
 ```powershell
 kubectl apply -f web-service-loadbalancer.yaml
 kubectl get svc web-service-loadbalancer -o wide

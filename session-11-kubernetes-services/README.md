@@ -14,6 +14,8 @@ All five Service types were run on a Minikube cluster (Docker driver, Kubernetes
 
 [`web-pod.yaml`](web-pod.yaml)
 
+![web Pod YAML](yaml-web-pod.png)
+
 ![Clean state](01-clean-state.png)
 ![web Pod running](02-web-pod.png)
 

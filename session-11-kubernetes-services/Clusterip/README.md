@@ -4,6 +4,8 @@
 
 Manifest: [`web-service-clusterip.yaml`](web-service-clusterip.yaml). It selects `app: web` and forwards port `8080` to container port `80`.
 
+![Clusterip YAML](screenshots/yaml-clusterip.png)
+
 ```powershell
 kubectl apply -f web-service-clusterip.yaml
 kubectl get svc web-service-clusterip -o wide

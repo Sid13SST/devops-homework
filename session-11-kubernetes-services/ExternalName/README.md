@@ -4,6 +4,8 @@ An **ExternalName** Service maps a name inside the cluster to an **external DNS 
 
 Manifest: [`web-service-externalname.yaml`](web-service-externalname.yaml). It points to `externalName: google.com` and has no selector.
 
+![ExternalName YAML](screenshots/yaml-externalname.png)
+
 ```powershell
 kubectl apply -f web-service-externalname.yaml
 kubectl get svc web-service-externalname -o wide

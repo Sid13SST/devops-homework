@@ -4,6 +4,8 @@
 
 Manifest: [`web-service-nodeport.yaml`](web-service-nodeport.yaml). It maps port `8080` to container port `80`, with node port `30080`.
 
+![NodePort YAML](screenshots/yaml-nodeport.png)
+
 ```powershell
 kubectl apply -f web-service-nodeport.yaml
 kubectl get svc web-service-nodeport -o wide

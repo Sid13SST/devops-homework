@@ -4,6 +4,8 @@ A **Headless** Service sets `clusterIP: None`. It has no virtual IP and no kube-
 
 Manifest: [`web-service-headless.yaml`](web-service-headless.yaml). It selects `app: web` on port `8080` and forwards to container port `80`.
 
+![HeadLess YAML](screenshots/yaml-headless.png)
+
 ```powershell
 kubectl apply -f web-service-headless.yaml
 kubectl get svc web-service-headless -o wide
