@@ -1,0 +1,41 @@
+# Multi-document manifest: Deployment + Service co-located, separated by ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yatri-frontend
+  labels:
+    app: yatri-app
+    tier: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: yatri-app
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        app: yatri-app
+        tier: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: nginx
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: yatri-frontend-service
+  labels:
+    app: yatri-app
+    tier: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: yatri-app
+    tier: frontend
+  ports:
+    - port: 80
+      targetPort: 80

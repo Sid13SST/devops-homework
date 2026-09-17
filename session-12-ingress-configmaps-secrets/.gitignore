@@ -1,0 +1,2 @@
+# Self-signed TLS private key is regenerated locally, never committed (see README Task 13)
+03-ingress/tls.key

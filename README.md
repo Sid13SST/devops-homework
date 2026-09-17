@@ -1,6 +1,6 @@
 # DevOps Homework — Section B
 
-All nine DevOps homework tasks, each in its own folder with its own `README.md`.
+All eleven DevOps homework tasks, each in its own folder with its own `README.md`.
 
 | | |
 |---|---|
@@ -24,6 +24,8 @@ The submission form has one field per topic. Each links to that topic's `README.
 | 7 | **Networking** | [`Networking/`](Networking/README.md) | Networking Homework Tasks |
 | 8 | **Kubernetes Services** | [`session-11-kubernetes-services/`](session-11-kubernetes-services/README.md) | Session 11 — Kubernetes Services |
 | 9 | **Kubernetes Core Objects** | [`session10-k8s-core-objects/`](session10-k8s-core-objects/README.md) | Session 10 — Kubernetes Core Objects |
+| 10 | **Kubernetes Fundamentals** | [`session9-k8s/`](session9-k8s/README.md) | Session 9 — Kubernetes Fundamentals & Architecture |
+| 11 | **Ingress, ConfigMaps & Secrets** | [`session-12-ingress-configmaps-secrets/`](session-12-ingress-configmaps-secrets/README.md) | Session 12 — ConfigMaps, Secrets & Ingress |
 
 ---
 
@@ -55,6 +57,12 @@ All five Service types — **ClusterIP, NodePort, LoadBalancer, Headless and Ext
 
 ### 9. [Kubernetes Core Objects](session10-k8s-core-objects/README.md)
 All five core workload objects — **Pod, ReplicaSet, Deployment, StatefulSet and DaemonSet** — applied and verified on Minikube, using the reference repository's manifests **byte-for-byte** (MD5-verified, including its `deamonset.yml` spelling). Highlights proven with real output: a two-container Pod at `2/2` sharing one IP; **ReplicaSet self-healing** (deleted Pod replaced under a new name in 6s); the Deployment → ReplicaSet → Pod chain confirmed through `ownerReferences`, plus scaling 3→5→3; a StatefulSet with stable ordinals `mysql-0/1/2`, ordered start-up and **one Bound 5Gi PVC per Pod**; and a DaemonSet whose `DESIRED 1` is derived from the cluster's single node. 21 terminal screenshots.
+
+### 10. [Kubernetes Fundamentals](session9-k8s/README.md)
+Minikube and `kubectl` installation verified, then the **full cluster lifecycle executed for real** — `minikube status` with every component `Running`, a graceful `minikube stop` showing all components `Stopped`, and a genuine `minikube start` bringing it back (including Minikube's own client/server version-skew warning). Plus a documented breakdown of the **Control Plane** (`kube-apiserver`, `etcd`, `kube-scheduler`, `kube-controller-manager`) and **Worker Node** (`kubelet`, `kube-proxy`, CRI/containerd, Pod) components, with an end-to-end trace of what happens during `kubectl apply`. 5 screenshots.
+
+### 11. [Ingress, ConfigMaps & Secrets](session-12-ingress-configmaps-secrets/README.md)
+All **14 Session 12 tasks** executed on Minikube with the NGINX Ingress Controller. Highlights: the **ConfigMap immobility drill** — patched to `staging` while the running Pod still reported `production`, fixed by a zero-downtime `rollout restart`; the **trailing-newline Secret bug** exposed byte-by-byte with `xxd` (`...ZK` vs `...ZQ=`); combined `envFrom` + `secretKeyRef` injection verified inside the container; and **Layer 7 routing** proven four ways — path-based (`/` → nginx, `/api/` → backend), host-based virtual hosts on one IP, hybrid host+path, and **TLS termination** returning `HTTP 200` over a TLSv1.3 handshake with a self-signed `CN=campus.local` certificate. Ends with scripted deploy/teardown. 17 screenshots.
 
 ---
 
