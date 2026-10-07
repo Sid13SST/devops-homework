@@ -1,0 +1,14 @@
+# Persistent storage via dynamic provisioning (Session 13 concept).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: campus-data
+  labels:
+    app: campus-portal
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 256Mi

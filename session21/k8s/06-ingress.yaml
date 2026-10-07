@@ -1,0 +1,22 @@
+# Layer 7 routing through the NGINX ingress controller (Session 12 concept).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: campus-portal
+  labels:
+    app: campus-portal
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: campus.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: campus-portal
+                port:
+                  number: 80

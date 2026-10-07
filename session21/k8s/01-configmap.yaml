@@ -1,0 +1,34 @@
+# Non-sensitive configuration, separated from the image (Session 12 concept).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: campus-config
+  labels:
+    app: campus-portal
+data:
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  APP_NAME: "Campus Portal"
+  MAX_UPLOAD_MB: "25"
+---
+# The landing page, rendered from configuration rather than baked into the image.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: campus-content
+  labels:
+    app: campus-portal
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head><title>Campus Portal - Final Project</title></head>
+    <body style="font-family:Arial;background:#0b2545;color:#ffffff;text-align:center;padding:60px">
+      <h1>CAMPUS PORTAL</h1>
+      <h2>Session 21 - Final DevOps Project</h2>
+      <p>Deployment &middot; Service &middot; ConfigMap &middot; Secret &middot; Ingress &middot; HPA &middot; Probes &middot; Storage</p>
+      <p>Student: Siddhant Prasad (24BCS10255)</p>
+    </body>
+    </html>
+  health.html: |
+    ok

@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: campus-portal
+  labels:
+    app: campus-portal
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: campus-portal
+  template:
+    metadata:
+      labels:
+        app: campus-portal
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 80
+
+          # configuration injected at runtime: ConfigMap for settings, Secret for credentials
+          envFrom:
+            - configMapRef:
+                name: campus-config
+            - secretRef:
+                name: campus-secret
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 32Mi
+            limits:
+              cpu: 300m
+              memory: 128Mi
+
+          # all three probe types (Session 13 concept)
+          startupProbe:
+            httpGet:
+              path: /index.html
+              port: 80
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /health.html
+              port: 80
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /index.html
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          volumeMounts:
+            - name: content
+              mountPath: /usr/share/nginx/html
+            - name: data
+              mountPath: /data
+
+      volumes:
+        - name: content
+          configMap:
+            name: campus-content
+        - name: data
+          persistentVolumeClaim:
+            claimName: campus-data
