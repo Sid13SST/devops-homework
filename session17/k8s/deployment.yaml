@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: campus-secure-api
+  labels:
+    app: campus-secure-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: campus-secure-api
+  template:
+    metadata:
+      labels:
+        app: campus-secure-api
+    spec:
+      containers:
+        - name: api
+          # the CD job rewrites this tag to the image built from the current commit
+          image: ghcr.io/sid13sst/campus-secure-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          env:
+            - name: APP_VERSION
+              value: "ci"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10

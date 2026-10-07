@@ -1,0 +1,223 @@
+name: Session 17 - DevSecOps Pipeline
+
+# Code -> Build -> Unit Test -> SAST -> SCA -> Secret Scan -> Docker Build
+#      -> Container Image Scan -> Security Gate -> Push Image -> Deploy to Kubernetes
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'session17/**'
+      - '.github/workflows/session17-devsecops.yml'
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: ghcr.io/sid13sst/campus-secure-api
+  WORKDIR: session17/app
+
+jobs:
+  # ------------------------------------------------------------ build + unit test
+  build-and-test:
+    name: Build & Unit Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKDIR }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKDIR }}
+        run: npm ci
+
+      - name: Run unit tests with coverage
+        working-directory: ${{ env.WORKDIR }}
+        run: npm test
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: s17-coverage
+          path: ${{ env.WORKDIR }}/coverage/
+          retention-days: 7
+
+  # ------------------------------------------------------------------------ SAST
+  sast:
+    name: SAST - Static Application Security Testing
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Semgrep (security-audit + javascript rulesets)
+        run: |
+          python3 -m pip install --quiet semgrep
+          semgrep --config=p/security-audit --config=p/javascript \
+                  --sarif --output=semgrep.sarif ${{ env.WORKDIR }} || true
+          echo "--- findings summary ---"
+          semgrep --config=p/security-audit --config=p/javascript \
+                  --severity=ERROR --error ${{ env.WORKDIR }}
+
+      - name: Upload SAST report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s17-sast-semgrep
+          path: semgrep.sarif
+          retention-days: 7
+
+  # ------------------------------------------------------------------------- SCA
+  sca:
+    name: SCA - Dependency Scanning
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # fails the job if a production dependency has a high/critical advisory
+      - name: npm audit (production dependencies)
+        working-directory: ${{ env.WORKDIR }}
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Trivy filesystem scan (dependencies)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: ${{ env.WORKDIR }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+
+  # --------------------------------------------------------------- secret scanning
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+
+      # fails the job if a credential is committed in the application source
+      - name: Gitleaks scan
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/repo" \
+            zricethezav/gitleaks:latest detect \
+            --source /repo/${{ env.WORKDIR }} \
+            --config /repo/session17/security/.gitleaks.toml \
+            --no-git --redact --verbose
+
+  # ----------------------------------------- image build + container scan + gate
+  image-build-scan:
+    name: Docker Build & Image Scan (Security Gate)
+    runs-on: ubuntu-latest
+    needs: [sast, sca, secret-scan]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image (not pushed yet - it must pass the gate first)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.WORKDIR }}
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      # THE SECURITY GATE: a HIGH or CRITICAL vulnerability fails the job,
+      # so the image is never pushed and never deployed.
+      - name: Trivy image scan - SECURITY GATE
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+
+      - name: Save scanned image for the deploy job
+        run: docker save ${{ env.IMAGE_NAME }}:${{ github.sha }} -o /tmp/campus-secure-api.tar
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: s17-container-image
+          path: /tmp/campus-secure-api.tar
+          retention-days: 1
+
+      # only reached when the gate passed
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push the scanned image
+        run: |
+          docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.IMAGE_NAME }}:latest
+
+  # -------------------------------------------------------- deploy to Kubernetes
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: image-build-scan
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create a Kubernetes cluster (kind)
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: devsecops-cluster
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: s17-container-image
+          path: /tmp
+
+      - name: Load the scanned image into the cluster
+        run: |
+          docker load -i /tmp/campus-secure-api.tar
+          kind load docker-image ${{ env.IMAGE_NAME }}:${{ github.sha }} --name devsecops-cluster
+
+      - name: Deploy manifests
+        run: |
+          cd session17/k8s
+          kubectl set image --local -f deployment.yaml \
+            api=${{ env.IMAGE_NAME }}:${{ github.sha }} -o yaml > deployment-pinned.yaml
+          kubectl apply -f deployment-pinned.yaml
+          kubectl apply -f service.yaml
+          kubectl rollout status deployment/campus-secure-api --timeout=180s
+
+      - name: Verify the deployment
+        run: |
+          kubectl get deployment,pod,svc -l app=campus-secure-api -o wide
+          echo "--- live endpoint ---"
+          kubectl run verify --image=curlimages/curl:8.10.1 --restart=Never --rm -i --quiet -- \
+            curl -s http://campus-secure-api.default.svc.cluster.local/
+          echo ""
+
+      - name: Security summary
+        run: |
+          echo "### Session 17 DevSecOps pipeline" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Tool | Result |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit tests | Jest | passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| SAST | Semgrep | passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| SCA | npm audit + Trivy fs | passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secret scan | Gitleaks | passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image scan (gate) | Trivy image | passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deploy | kind + kubectl | rolled out |" >> $GITHUB_STEP_SUMMARY
