@@ -1,0 +1,14 @@
+# Dynamically provisioned storage for the notes app content.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: notes-pvc
+  labels:
+    app: notes-app
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 256Mi

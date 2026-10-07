@@ -1,0 +1,20 @@
+# BROKEN: mounts a ConfigMap that does not exist. The Pod is scheduled but the
+# kubelet cannot build the volume, so it sits in ContainerCreating with a
+# FailedMount event.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: containercreating-demo
+  labels:
+    demo: containercreating
+spec:
+  containers:
+    - name: app
+      image: nginx:1.27-alpine
+      volumeMounts:
+        - name: config
+          mountPath: /etc/app-config
+  volumes:
+    - name: config
+      configMap:
+        name: app-settings

@@ -1,0 +1,23 @@
+{
+  "name": "campus-notes-api",
+  "version": "1.0.0",
+  "description": "Small Express API used to demonstrate a CI/CD pipeline with GitHub Actions",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "jest --coverage --runInBand"
+  },
+  "author": "Siddhant Prasad (24BCS10255)",
+  "license": "MIT",
+  "dependencies": {
+    "express": "4.21.2"
+  },
+  "devDependencies": {
+    "jest": "29.7.0",
+    "supertest": "7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": ["app.js"]
+  }
+}

@@ -1,0 +1,11 @@
+# FIXED: create the ConfigMap the Pod is waiting for.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-settings
+  labels:
+    demo: containercreating
+data:
+  app.conf: |
+    mode=production
+    log_level=info

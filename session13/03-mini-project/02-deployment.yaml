@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notes-app
+  labels:
+    app: notes-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notes-app
+  template:
+    metadata:
+      labels:
+        app: notes-app
+    spec:
+      # seed the persistent volume with the site and the health endpoint
+      initContainers:
+        - name: seed-content
+          image: busybox:1.36
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              cat > /usr/share/nginx/html/index.html <<'HTML'
+              <!DOCTYPE html>
+              <html>
+              <head><title>Notes App - Session 13</title></head>
+              <body style="font-family:Arial;background:#102a43;color:#fff;text-align:center;padding:60px">
+                <h1>NOTES APP</h1>
+                <p>Session 13 mini project - Storage + Probes + HPA</p>
+                <p>This page is served from a PersistentVolumeClaim (notes-pvc).</p>
+                <p>Student: Siddhant Prasad (24BCS10255)</p>
+              </body>
+              </html>
+              HTML
+              echo "ok" > /usr/share/nginx/html/health.html
+              ls -l /usr/share/nginx/html
+          volumeMounts:
+            - name: content
+              mountPath: /usr/share/nginx/html
+      containers:
+        - name: web
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 100m
+              memory: 32Mi
+            limits:
+              cpu: 300m
+              memory: 128Mi
+          # startupProbe runs first and holds the other probes back until the app is up
+          startupProbe:
+            httpGet:
+              path: /index.html
+              port: 80
+            failureThreshold: 30
+            periodSeconds: 2
+          # readinessProbe decides whether the Pod receives Service traffic
+          readinessProbe:
+            httpGet:
+              path: /health.html
+              port: 80
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            failureThreshold: 2
+          # livenessProbe decides whether the container gets restarted
+          livenessProbe:
+            httpGet:
+              path: /index.html
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          volumeMounts:
+            - name: content
+              mountPath: /usr/share/nginx/html
+      volumes:
+        - name: content
+          persistentVolumeClaim:
+            claimName: notes-pvc

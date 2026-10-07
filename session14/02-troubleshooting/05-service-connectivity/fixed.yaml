@@ -1,0 +1,12 @@
+# FIXED: selector now matches the Pod labels exactly.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+spec:
+  type: ClusterIP
+  selector:
+    app: web-app
+  ports:
+    - port: 80
+      targetPort: 80

@@ -1,0 +1,7 @@
+# Revision 3: production styling, 2 replicas. This is the revision we roll back FROM.
+replicaCount: 2
+portal:
+  title: "Campus Portal"
+  message: "Version 3 - production theme (this revision gets rolled back)"
+  environment: "production"
+  background: "#5c1b1b"

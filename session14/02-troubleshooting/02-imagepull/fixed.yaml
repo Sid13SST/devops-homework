@@ -1,0 +1,13 @@
+# FIXED: a tag that really exists.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: imagepull-demo
+  labels:
+    demo: imagepullbackoff
+spec:
+  containers:
+    - name: app
+      image: nginx:1.27-alpine
+      ports:
+        - containerPort: 80

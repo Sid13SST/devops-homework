@@ -1,0 +1,10 @@
+# FIXED: the ConfigMap now provides the key the Pod requires.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-env
+  labels:
+    demo: configuration
+data:
+  APP_NAME: "troubleshooting-demo"
+  DATABASE_URL: "postgres://app:app@postgres:5432/appdb"

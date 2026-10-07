@@ -1,0 +1,90 @@
+# Default values for campus-chart.
+# Session 15 - Helm | Siddhant Prasad (24BCS10255)
+
+# How many Pods to run. Overridden on upgrade to demonstrate rolling changes.
+replicaCount: 1
+
+image:
+  repository: nginx
+  pullPolicy: IfNotPresent
+  tag: "1.27-alpine"
+
+# Values that feed the rendered landing page (templates/configmap.yaml).
+# Changing these is enough to produce a new release revision.
+portal:
+  title: "Campus Portal"
+  message: "Version 1 - initial install"
+  environment: "development"
+  background: "#0b3d2e"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: campus.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 32Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 2
+  periodSeconds: 5
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 70
+
+volumes: []
+volumeMounts: []
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Gateway API HTTPRoute (left disabled; this chart uses a plain ClusterIP Service).
+httpRoute:
+  enabled: false
+  parentRefs: []
+  hostnames: []
+  rules: []

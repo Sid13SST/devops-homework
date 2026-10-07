@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: emptydir-demo
+spec:
+  containers:
+    - name: app
+      image: nginx:1.27
+      volumeMounts:
+        - name: shared-storage
+          mountPath: /data
+
+  volumes:
+    - name: shared-storage
+      emptyDir: {}

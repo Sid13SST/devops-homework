@@ -1,0 +1,14 @@
+# BROKEN: this image tag does not exist in the registry.
+# The kubelet first reports ErrImagePull, then backs off -> ImagePullBackOff.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: imagepull-demo
+  labels:
+    demo: imagepullbackoff
+spec:
+  containers:
+    - name: app
+      image: nginx:1.27-this-tag-does-not-exist
+      ports:
+        - containerPort: 80

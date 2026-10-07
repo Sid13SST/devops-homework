@@ -1,0 +1,22 @@
+{{/* Renders the portal landing page from values, so every upgrade can change
+     the content without touching the container image. */}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "campus-chart.fullname" . }}-content
+  labels:
+    {{- include "campus-chart.labels" . | nindent 4 }}
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head><title>{{ .Values.portal.title }}</title></head>
+    <body style="font-family:Arial;background:{{ .Values.portal.background }};color:#ffffff;text-align:center;padding:60px">
+      <h1>{{ .Values.portal.title }}</h1>
+      <h2>{{ .Values.portal.message }}</h2>
+      <p>Chart version: {{ .Chart.Version }} &nbsp;|&nbsp; App version: {{ .Chart.AppVersion }}</p>
+      <p>Release: {{ .Release.Name }} &nbsp;|&nbsp; Revision: {{ .Release.Revision }}</p>
+      <p>Environment: {{ .Values.portal.environment }} &nbsp;|&nbsp; Replicas: {{ .Values.replicaCount }}</p>
+      <p>Session 15 - Helm &nbsp;|&nbsp; Siddhant Prasad (24BCS10255)</p>
+    </body>
+    </html>

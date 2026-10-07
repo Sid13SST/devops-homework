@@ -1,0 +1,7 @@
+# Revision 2: scale out and change the page content.
+replicaCount: 3
+portal:
+  title: "Campus Portal"
+  message: "Version 2 - scaled out to 3 replicas"
+  environment: "staging"
+  background: "#1b3a5c"

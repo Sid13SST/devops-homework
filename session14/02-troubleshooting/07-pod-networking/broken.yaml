@@ -1,0 +1,14 @@
+# BROKEN: nginx listens on port 80, but the Service forwards to targetPort 8080.
+# Endpoints exist (the selector is correct) yet every request is refused -
+# the classic "service has endpoints but still does not work" case.
+apiVersion: v1
+kind: Service
+metadata:
+  name: netcheck-service
+spec:
+  type: ClusterIP
+  selector:
+    app: web-app
+  ports:
+    - port: 80
+      targetPort: 8080

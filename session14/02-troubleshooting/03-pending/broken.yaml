@@ -1,0 +1,16 @@
+# BROKEN: asks for 64 CPUs and 200Gi of memory. No node can satisfy this, so the
+# scheduler leaves the Pod Pending with an Insufficient cpu/memory event.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pending-demo
+  labels:
+    demo: pending
+spec:
+  containers:
+    - name: app
+      image: nginx:1.27-alpine
+      resources:
+        requests:
+          cpu: "64"
+          memory: "200Gi"

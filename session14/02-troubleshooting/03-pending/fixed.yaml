@@ -1,0 +1,15 @@
+# FIXED: a request the single-node minikube cluster can actually schedule.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pending-demo
+  labels:
+    demo: pending
+spec:
+  containers:
+    - name: app
+      image: nginx:1.27-alpine
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "64Mi"

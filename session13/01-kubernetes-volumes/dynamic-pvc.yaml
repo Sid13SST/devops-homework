@@ -1,0 +1,15 @@
+# Dynamic provisioning: no PersistentVolume is created by hand.
+# The PVC names a StorageClass and Kubernetes provisions the PV automatically.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dynamic-pvc
+  labels:
+    demo: dynamic-provisioning
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 256Mi

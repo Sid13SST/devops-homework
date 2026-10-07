@@ -1,0 +1,13 @@
+# FIXED: the container now runs a process that stays alive and exits 0 only when stopped.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: crashloop-demo
+  labels:
+    demo: crashloopbackoff
+spec:
+  containers:
+    - name: app
+      image: busybox:1.36
+      command: ["/bin/sh", "-c"]
+      args: ["echo 'starting up...'; echo 'config loaded successfully'; while true; do sleep 30; done"]

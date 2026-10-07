@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dynamic-storage-demo
+  labels:
+    demo: dynamic-provisioning
+spec:
+  containers:
+    - name: app
+      image: busybox:1.36
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          echo "written by $(hostname) at $(date)" > /data/dynamic.txt
+          cat /data/dynamic.txt
+          sleep 3600
+      volumeMounts:
+        - name: dynamic-storage
+          mountPath: /data
+  volumes:
+    - name: dynamic-storage
+      persistentVolumeClaim:
+        claimName: dynamic-pvc
