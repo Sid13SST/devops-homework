@@ -275,7 +275,8 @@ Service will route traffic to it.
 ## 3.6 Breaking the readiness probe
 
 ```powershell
-kubectl exec $(kubectl get pod -l app=notes-app -o jsonpath="{.items[0].metadata.name}") -c web -- rm -f /usr/share/nginx/html/health.html
+kubectl get pod -l app=notes-app -o name
+kubectl exec deploy/notes-app -c web -- rm -f /usr/share/nginx/html/health.html
 kubectl get pods -l app=notes-app
 kubectl get endpoints notes-service
 ```
@@ -290,7 +291,7 @@ still `0`: readiness failure removes traffic, it does **not** restart the contai
 ## 3.7 Recovering
 
 ```powershell
-kubectl exec $(kubectl get pod -l app=notes-app -o jsonpath="{.items[0].metadata.name}") -c web -- sh -c "echo ok > /usr/share/nginx/html/health.html"
+kubectl exec deploy/notes-app -c web -- sh -c "echo ok > /usr/share/nginx/html/health.html"
 kubectl get pods -l app=notes-app
 kubectl get endpoints notes-service
 ```
