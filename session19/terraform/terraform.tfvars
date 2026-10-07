@@ -1,0 +1,6 @@
+project           = "campus-cloud"
+environment       = "dev"
+aws_region        = "ap-south-1"
+availability_zone = "ap-south-1a"
+vpc_cidr          = "10.0.0.0/16"
+instance_type     = "t3.micro"
